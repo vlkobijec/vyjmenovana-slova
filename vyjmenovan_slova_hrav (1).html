@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vyjmenovaná slova hravě - Finální verze</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Fredoka & Nunito -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Fredoka', 'cursive', 'sans-serif'],
+                        body: ['Nunito', 'sans-serif'],
+                    },
+                    colors: {
+                        pastel: {
+                            purple: '#8B5CF6',
+                            pink: '#EC4899',
+                            blue: '#3B82F6',
+                            green: '#10B981',
+                            yellow: '#F59E0B',
+                            orange: '#F97316',
+                            bg: '#F8FAFC'
+                        }
+                    },
+                    keyframes: {
+                        pop: {
+                            '0%': { transform: 'scale(0.9)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        },
+                        bounceShort: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-8px)' }
+                        },
+                        shake: {
+                            '0%, 100%': { transform: 'translateX(0)' },
+                            '20%, 60%': { transform: 'translateX(-6px)' },
+                            '40%, 80%': { transform: 'translateX(6px)' }
+                        }
+                    },
+                    animation: {
+                        pop: 'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                        bounceShort: 'bounceShort 0.35s ease-in-out',
+                        shake: 'shake 0.35s ease-in-out'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #F1F5F9;
+            background-image: radial-gradient(#CBD5E1 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+        h1, h2, h3, h4, .font-display {
+            font-family: 'Fredoka', cursive;
+        }
+        .btn-bounce {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-bounce:active {
+            transform: translateY(2px) scale(0.98);
+        }
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between selection:bg-purple-200 selection:text-purple-900">
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between">
+            
+            <!-- Logo -->
+            <div class="flex items-center gap-3 cursor-pointer group" onclick="app.navTo('home')">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-500 to-pink-500 flex items-center justify-center text-white text-2xl shadow-md transform -rotate-3 group-hover:rotate-0 transition-transform">
+                    <i class="fa-solid fa-spell-check"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 bg-clip-text text-transparent leading-none">
+                        Vyjmenovaná slova
+                    </h1>
+                    <span class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Hravá Čeština</span>
+                </div>
+            </div>
+
+            <!-- Gamification Header Stats Bar -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- XP & Level Badge -->
+                <div class="bg-purple-50 border border-purple-200 rounded-2xl px-3 py-1 flex items-center gap-2 shadow-sm" title="Váš Level a Zkušenosti">
+                    <div class="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold text-xs font-display" id="header-level">
+                        1
+                    </div>
+                    <div class="hidden xs:flex flex-col">
+                        <span class="text-[10px] uppercase font-extrabold text-purple-400 leading-none">Úroveň</span>
+                        <span class="text-xs font-bold text-purple-700 leading-tight" id="header-level-title">Začátečník</span>
+                    </div>
+                </div>
+
+                <!-- Streak -->
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl px-3 py-1 flex items-center gap-1.5 text-amber-700 text-xs font-bold shadow-sm" title="Řada správných odpovědí">
+                    <i class="fa-solid fa-fire text-amber-500 text-sm animate-pulse"></i>
+                    <span id="header-streak" class="text-sm font-display">0</span>
+                </div>
+
+                <!-- XP Points -->
+                <div class="bg-emerald-50 border border-emerald-200 rounded-2xl px-3 py-1 flex items-center gap-1.5 text-emerald-700 text-xs font-bold shadow-sm" title="Celkové body XP">
+                    <i class="fa-solid fa-star text-emerald-500 text-sm"></i>
+                    <span id="header-xp" class="text-sm font-display">0 XP</span>
+                </div>
+
+                <!-- Audio Toggle -->
+                <button id="sound-btn" onclick="app.toggleSound()" class="w-9 h-9 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors btn-bounce" title="Zvuk ZAP/VYP">
+                    <i class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-5xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- ================= SECTION: HOME / DASHBOARD ================= -->
+        <section id="sec-home" class="space-y-8 animate-pop">
+            <!-- Hero Banner -->
+            <div class="relative overflow-hidden bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-500 rounded-3xl p-6 sm:p-10 text-white shadow-xl">
+                <div class="relative z-10 max-w-2xl space-y-3">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider text-purple-100 border border-white/20">
+                        <i class="fa-solid fa-rocket text-amber-300"></i> Procvičuj & Zlepšuj se
+                    </span>
+                    <h2 class="text-3xl sm:text-5xl font-bold leading-tight font-display">
+                        Staň se mistrem v české mluvnici!
+                    </h2>
+                    <p class="text-purple-100 text-sm sm:text-base opacity-95 leading-relaxed font-semibold">
+                        Trénuj i/y, odhaluj chytáky, sbírej XP body a odemykej skvělé odznaky.
+                    </p>
+                </div>
+                <!-- Background decoration -->
+                <div class="absolute -right-8 -bottom-10 opacity-20 text-white text-[180px] pointer-events-none font-display select-none">
+                    i/y
+                </div>
+            </div>
+
+            <!-- Configuration Box -->
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 card-shadow space-y-6">
+                
+                <!-- 1. Consonant Filter -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                            1. Vyber obojetné souhlásky:
+                        </label>
+                        <!-- Checkbox for Only Homonyms/Tricky Pairs -->
+                        <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100/80 px-3 py-1.5 rounded-xl border border-amber-200 transition-colors">
+                            <input type="checkbox" id="filter-homonyms-only" onchange="app.toggleHomonymFilter()" class="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 border-amber-300">
+                            <span><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Pouze záludné chytáky</span>
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-4 sm:grid-cols-8 gap-2.5" id="consonant-selector">
+                        <!-- Dynamic consonant buttons -->
+                    </div>
+                </div>
+
+                <!-- 2. Mode Selection Grid -->
+                <div>
+                    <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-3">
+                        2. Zvol režim učení:
+                    </label>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        
+                        <!-- Mode A: Practice -->
+                        <div onclick="app.selectMode('practice')" id="mode-practice" class="mode-card cursor-pointer border-2 border-purple-500 bg-purple-50/50 rounded-2xl p-5 transition-all duration-200 hover:shadow-md relative flex flex-col justify-between group">
+                            <div>
+                                <div class="w-12 h-12 rounded-2xl bg-purple-500 text-white flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition-transform shadow-md shadow-purple-200">
+                                    <i class="fa-solid fa-graduation-cap"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-800 mb-1 font-display">Rychlé procvičování</h3>
+                                <p class="text-xs text-slate-500 leading-relaxed font-semibold">
+                                    Doplňuj I/Y s okamžitou zpětnou vazbou, nápovědou a podrobným vysvětlením pravidel.
+                                </p>
+                            </div>
+                            <span class="mt-4 text-xs font-bold text-purple-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                Spustit procvičování <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </span>
+                        </div>
+
+                        <!-- Mode B: Test -->
+                        <div onclick="app.selectMode('test')" id="mode-test" class="mode-card cursor-pointer border-2 border-slate-200 bg-white hover:border-pink-300 rounded-2xl p-5 transition-all duration-200 hover:shadow-md relative flex flex-col justify-between group">
+                            <div>
+                                <div class="w-12 h-12 rounded-2xl bg-pink-500 text-white flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition-transform shadow-md shadow-pink-200">
+                                    <i class="fa-solid fa-stopwatch"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-800 mb-1 font-display">Test na čas (Výzva)</h3>
+                                <p class="text-xs text-slate-500 leading-relaxed font-semibold">
+                                    Zvol počet otázek nebo časový limit. Získej známku 1–5 a detailní rozbor chyb!
+                                </p>
+                            </div>
+                            <span class="mt-4 text-xs font-bold text-pink-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                Vyzkoušet test <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </span>
+                        </div>
+
+                        <!-- Mode C: Cards / Dictionary -->
+                        <div onclick="app.selectMode('cards')" id="mode-cards" class="mode-card cursor-pointer border-2 border-slate-200 bg-white hover:border-amber-300 rounded-2xl p-5 transition-all duration-200 hover:shadow-md relative flex flex-col justify-between group">
+                            <div>
+                                <div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition-transform shadow-md shadow-amber-200">
+                                    <i class="fa-solid fa-book-open"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-800 mb-1 font-display">Přehled & Kartičky</h3>
+                                <p class="text-xs text-slate-500 leading-relaxed font-semibold">
+                                    Výukový slovník vyjmenovaných slov s vyhladáváním, příklady a srovnáním záludných dvojic.
+                                </p>
+                            </div>
+                            <span class="mt-4 text-xs font-bold text-amber-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                Otevřít slovník <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Dynamic Test Options Config (Only visible if Test Mode selected) -->
+                <div id="test-config-panel" class="hidden bg-pink-50/60 border border-pink-200 rounded-2xl p-4 space-y-3 animate-pop">
+                    <span class="block text-xs font-extrabold uppercase tracking-wider text-pink-800">
+                        Nastavení testu:
+                    </span>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-bold">
+                        <div>
+                            <label class="block text-slate-600 mb-1">Typ testu:</label>
+                            <select id="test-type-select" onchange="app.updateTestConfigUI()" class="w-full bg-white border border-slate-200 rounded-xl p-2 text-slate-800 font-bold focus:ring-pink-500 focus:border-pink-500">
+                                <option value="questions">Počet otázek (10, 20, 30)</option>
+                                <option value="time">Časový limit (60s, 120s)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 mb-1" id="test-param-label">Počet otázek:</label>
+                            <select id="test-param-select" class="w-full bg-white border border-slate-200 rounded-xl p-2 text-slate-800 font-bold focus:ring-pink-500 focus:border-pink-500">
+                                <!-- Options rendered dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Start Action Button -->
+                <div class="pt-2">
+                    <button onclick="app.startSelectedMode()" class="w-full py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-lg rounded-2xl shadow-lg shadow-purple-200 btn-bounce flex items-center justify-center gap-2 font-display">
+                        <i class="fa-solid fa-play"></i>
+                        <span id="start-btn-label">Spustit procvičování</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Achievements & Badges Gallery -->
+            <div class="bg-white rounded-3xl p-6 border border-slate-200/80 card-shadow space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-slate-800 font-display flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-amber-500"></i> Moje Odznaky a Úspěchy
+                    </h3>
+                    <span id="badge-progress-text" class="text-xs font-extrabold text-slate-400">0 z 8 získán</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3" id="badges-container">
+                    <!-- Dynamic badges rendered here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION: PRACTICE MODE ================= -->
+        <section id="sec-practice" class="hidden space-y-6 max-w-3xl mx-auto animate-pop">
+            <!-- Top Controls -->
+            <div class="flex items-center justify-between bg-white px-5 py-3 rounded-2xl border border-slate-200/80 card-shadow">
+                <button onclick="app.navTo('home')" class="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1.5 transition-colors">
+                    <i class="fa-solid fa-arrow-left"></i> Zpět na nabídku
+                </button>
+                <div class="text-xs font-extrabold text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100" id="practice-category-tag">
+                    Skupina: Všechny
+                </div>
+                <div class="text-xs font-bold text-slate-600">
+                    Správně: <span id="practice-score-correct" class="text-emerald-600 font-bold">0</span> / <span id="practice-score-total">0</span>
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 card-shadow space-y-6 relative overflow-hidden">
+                <!-- Hint Button -->
+                <div class="flex justify-end">
+                    <button onclick="app.togglePracticeHint()" id="hint-btn" class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-xl border border-amber-200 transition-colors btn-bounce">
+                        <i class="fa-solid fa-lightbulb text-amber-500"></i> Nápověda
+                    </button>
+                </div>
+
+                <!-- Target Sentence Area -->
+                <div class="text-center py-4 space-y-4">
+                    <span class="inline-block px-3 py-1 bg-slate-100 text-slate-500 text-xs font-bold rounded-full uppercase tracking-wider">
+                        Doplň chybějící I / Í / Y / Ý
+                    </span>
+                    <div id="practice-sentence" class="text-2xl sm:text-4xl font-bold font-display text-slate-800 leading-snug">
+                        <!-- Sentence inserted here -->
+                    </div>
+                </div>
+
+                <!-- Hint Box (Hidden by default) -->
+                <div id="practice-hint-box" class="hidden bg-amber-50/80 border border-amber-200 text-amber-900 rounded-2xl p-4 text-xs space-y-1 animate-pop">
+                    <span class="font-bold uppercase tracking-wider text-amber-700 block"><i class="fa-solid fa-circle-info"></i> Nápověda k významu:</span>
+                    <p id="practice-hint-text" class="text-slate-700 font-semibold"></p>
+                </div>
+
+                <!-- Option Buttons (i, í, y, ý) -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-md mx-auto" id="practice-options">
+                    <button onclick="app.answerPractice('i')" class="opt-btn py-4 bg-slate-50 hover:bg-purple-50 border-2 border-slate-200 hover:border-purple-400 text-slate-800 font-bold text-2xl font-display rounded-2xl transition-all btn-bounce shadow-sm">i</button>
+                    <button onclick="app.answerPractice('í')" class="opt-btn py-4 bg-slate-50 hover:bg-purple-50 border-2 border-slate-200 hover:border-purple-400 text-slate-800 font-bold text-2xl font-display rounded-2xl transition-all btn-bounce shadow-sm">í</button>
+                    <button onclick="app.answerPractice('y')" class="opt-btn py-4 bg-slate-50 hover:bg-purple-50 border-2 border-slate-200 hover:border-purple-400 text-slate-800 font-bold text-2xl font-display rounded-2xl transition-all btn-bounce shadow-sm">y</button>
+                    <button onclick="app.answerPractice('ý')" class="opt-btn py-4 bg-slate-50 hover:bg-purple-50 border-2 border-slate-200 hover:border-purple-400 text-slate-800 font-bold text-2xl font-display rounded-2xl transition-all btn-bounce shadow-sm">ý</button>
+                </div>
+
+                <!-- Feedback & Rule Explanation Box -->
+                <div id="practice-feedback" class="hidden rounded-2xl p-5 border animate-pop space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-lg font-bold font-display" id="feedback-title">
+                            <!-- Title inserted here -->
+                        </div>
+                        <span id="feedback-xp-gain" class="hidden text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full">+10 XP</span>
+                    </div>
+
+                    <p id="feedback-explanation" class="text-sm font-semibold leading-relaxed text-slate-700">
+                        <!-- Explanation inserted here -->
+                    </p>
+
+                    <div id="feedback-homonym-tip" class="hidden text-xs bg-white/80 p-3 rounded-xl border border-slate-200 space-y-1">
+                        <span class="font-bold text-amber-800 uppercase tracking-wider block"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Pozor na záludný chyták:</span>
+                        <div id="feedback-homonym-text" class="text-slate-600 font-semibold"></div>
+                    </div>
+
+                    <button onclick="app.nextPracticeQuestion()" class="w-full py-3.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-all btn-bounce flex items-center justify-center gap-2 text-sm mt-2 font-display">
+                        <span>Další otázka</span> <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION: TEST MODE ================= -->
+        <section id="sec-test" class="hidden space-y-6 max-w-3xl mx-auto animate-pop">
+            <!-- Top Controls -->
+            <div class="flex items-center justify-between bg-white px-5 py-3 rounded-2xl border border-slate-200/80 card-shadow">
+                <button onclick="app.cancelTest()" class="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1.5 transition-colors">
+                    <i class="fa-solid fa-xmark"></i> Ukončit test
+                </button>
+                <!-- Timer / Counter -->
+                <div class="flex items-center gap-2 font-mono font-bold text-pink-600 text-lg bg-pink-50 px-3.5 py-1 rounded-xl border border-pink-100">
+                    <i class="fa-solid fa-clock text-sm animate-spin"></i>
+                    <span id="test-timer-display">00:00</span>
+                </div>
+                <div class="text-xs font-bold text-slate-600">
+                    Otázka: <span id="test-current-index">1</span> / <span id="test-total-count">10</span>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden shadow-inner">
+                <div id="test-progress-bar" class="bg-gradient-to-r from-pink-500 to-purple-500 h-full w-0 transition-all duration-300"></div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 card-shadow space-y-8 relative">
+                <!-- Sentence -->
+                <div class="text-center py-6 space-y-4">
+                    <span class="inline-block px-3 py-1 bg-pink-100 text-pink-700 text-xs font-bold rounded-full uppercase tracking-wider">
+                        Testová otázka
+                    </span>
+                    <div id="test-sentence" class="text-2xl sm:text-4xl font-bold font-display text-slate-800 leading-snug">
+                        <!-- Sentence inserted here -->
+                    </div>
+                </div>
+
+                <!-- Answer Buttons -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-md mx-auto">
+                    <button onclick="app.answerTest('i')" class="py-4 bg-slate-50 hover:bg-pink-50 border-2 border-slate-200 hover:border-pink-400 text-slate-800 font-bold text-2xl font-display rounded-2xl transition-all btn-bounce shadow-sm">i</button>
+                    <button onclick="app.answerTest('í')" class="py-4 bg-slate-50 hover:bg-pink-50 border-2 border-slate-200 hover:border-pink-400 text-slate-800 font-bold text-2xl font-display rounded-2xl transition-all btn-bounce shadow-sm">í</button>
+                    <button onclick="app.answerTest('y')" class="py-4 bg-slate-50 hover:bg-pink-50 border-2 border-slate-200 hover:border-pink-400 text-slate-800 font-bold text-2xl font-display rounded-2xl transition-all btn-bounce shadow-sm">y</button>
+                    <button onclick="app.answerTest('ý')" class="py-4 bg-slate-50 hover:bg-pink-50 border-2 border-slate-200 hover:border-pink-400 text-slate-800 font-bold text-2xl font-display rounded-2xl transition-all btn-bounce shadow-sm">ý</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION: TEST RESULT ================= -->
+        <section id="sec-test-result" class="hidden space-y-6 max-w-3xl mx-auto animate-pop">
+            <div class="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 card-shadow text-center space-y-6">
+                
+                <!-- Grade Badge Circle -->
+                <div id="res-grade-circle" class="w-24 h-24 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 text-white flex flex-col items-center justify-center mx-auto shadow-xl transform hover:scale-105 transition-transform">
+                    <span class="text-[10px] uppercase tracking-widest font-extrabold opacity-80">Známka</span>
+                    <span id="res-grade" class="text-4xl font-bold font-display leading-none">1</span>
+                </div>
+
+                <div>
+                    <h2 class="text-3xl font-bold font-display text-slate-800" id="res-title">Výsledek testu</h2>
+                    <p class="text-slate-500 text-sm font-semibold mt-1" id="res-subtitle">Skvělý výkon!</p>
+                </div>
+
+                <!-- Stats Summary Row -->
+                <div class="grid grid-cols-3 gap-3 max-w-md mx-auto">
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
+                        <span class="block text-[10px] font-extrabold text-slate-400 uppercase">Úspěšnost</span>
+                        <span id="res-percent" class="text-2xl font-bold font-display text-purple-600">100%</span>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
+                        <span class="block text-[10px] font-extrabold text-slate-400 uppercase">Správně</span>
+                        <span id="res-score-count" class="text-2xl font-bold font-display text-emerald-600">10/10</span>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
+                        <span class="block text-[10px] font-extrabold text-slate-400 uppercase">Čas</span>
+                        <span id="res-time-taken" class="text-2xl font-bold font-display text-amber-600">00:45</span>
+                    </div>
+                </div>
+
+                <!-- Detail list of answers -->
+                <div class="text-left space-y-3 pt-4 border-t border-slate-100">
+                    <h3 class="font-bold text-slate-800 font-display flex items-center justify-between">
+                        <span>Detailní přehled otázek</span>
+                        <span class="text-xs text-slate-400 font-semibold">Zkontrolovat pravidla</span>
+                    </h3>
+                    <div id="test-review-list" class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                        <!-- Dynamic error review items -->
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-col sm:flex-row gap-3 pt-4">
+                    <button onclick="app.startTest()" class="flex-1 py-3.5 bg-pink-600 hover:bg-pink-700 text-white font-bold rounded-xl btn-bounce transition-colors font-display">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> Opakovat test
+                    </button>
+                    <button onclick="app.navTo('home')" class="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl btn-bounce transition-colors font-display">
+                        Hlavní menu
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION: FLASHCARDS / DICTIONARY ================= -->
+        <section id="sec-cards" class="hidden space-y-6 animate-pop">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 card-shadow">
+                
+                <button onclick="app.navTo('home')" class="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1.5 transition-colors self-start md:self-auto">
+                    <i class="fa-solid fa-arrow-left"></i> Zpět na nabídku
+                </button>
+
+                <!-- Consonant Tabs -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0" id="cards-consonant-tabs">
+                    <!-- Dynamic tabs rendered here -->
+                </div>
+
+                <!-- Realtime Search Input -->
+                <div class="relative w-full md:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="cards-search-input" oninput="app.searchCards()" placeholder="Hledat slovo..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400">
+                </div>
+            </div>
+
+            <!-- Dictionary Main Layout Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left: Listed Words -->
+                <div class="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200/80 card-shadow space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h2 class="text-xl font-bold font-display text-slate-800 flex items-center gap-2" id="cards-title">
+                            <i class="fa-solid fa-list-ol text-amber-500"></i> Vyjmenovaná slova po B
+                        </h2>
+                        <span class="text-xs bg-amber-100 text-amber-800 font-extrabold px-2.5 py-1 rounded-full" id="cards-count-badge">
+                            0 slov
+                        </span>
+                    </div>
+
+                    <!-- Words List -->
+                    <div id="cards-words-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Dynamic Cards -->
+                    </div>
+                </div>
+
+                <!-- Right: Tricky Pairs & Homonyms -->
+                <div class="bg-amber-50/60 rounded-3xl p-6 border border-amber-200/80 card-shadow space-y-4 h-fit">
+                    <h3 class="text-lg font-bold font-display text-amber-900 flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Záludné dvojice (Chytáky)
+                    </h3>
+                    <p class="text-xs text-amber-700 font-semibold leading-relaxed">
+                        Slova, která znějí stejně nebo podobně, ale mají odlišný pravopis podle významu.
+                    </p>
+
+                    <div id="cards-homonyms-list" class="space-y-3 pt-1">
+                        <!-- Dynamic Homonyms -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+        <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>© Interaktivní procvičování vyjmenovaných slov</span>
+            <span class="font-bold text-purple-600">Pravopis hravě a bez chyb! ✏️</span>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        /**
+         * Comprehensive Dictionary & Rule Database for All Czech Consonants (B, L, M, P, S, V, Z)
+         */
+        const DATABASE = {
+            B: {
+                title: "Vyjmenovaná slova po B",
+                words: [
+                    { word: "být", meaning: "existovat, nacházet se", examples: "být doma, být zdráv, přebývat, nábytek, dobytek, obyvatel, bytost" },
+                    { word: "bydlet", meaning: "mít obydlí, žít někde", examples: "bydliště, obydlí, bydlení, zabydlet se" },
+                    { word: "obyvatel", meaning: "člověk žijící na určitérm místě", examples: "obyvatelstvo, obyvatelský" },
+                    { word: "byt", meaning: "místnost k bydlení", examples: "bytový, bytovka, příbytek" },
+                    { word: "příbytek", meaning: "skrýš, obydlí, domov", examples: "vlastní příbytek" },
+                    { word: "nábytek", meaning: "zařízení bytu (stoly, židle)", examples: "nábytkový, kus nábytku" },
+                    { word: "dobytek", meaning: "hospodářská zvířata", examples: "dobytčí, stádo dobytka" },
+                    { word: "obyčej", meaning: "zvyk, tradice", examples: "obyčejný, neobyčejně" },
+                    { word: "bystrý", meaning: "vnímavý, rychlý, chytrý", examples: "bystrost, Bystřice, bystřina" },
+                    { word: "bylina", meaning: "rostlina s dužnatým stonkem", examples: "bylinkový, bylinář, bylinářství" },
+                    { word: "kobyla", meaning: "samice koně", examples: "kobylka, Kobyly" },
+                    { word: "býk", meaning: "samčí tur domácí", examples: "býčí, býkovec, Býkov" },
+                    { word: "přebytek", meaning: "co přebývá, více než je potřeba", examples: "přebývat, nadbytek, úbytek" }
+                ],
+                homonyms: [
+                    { y: "být (existovat)", y_ex: "Chci být lékařem.", i: "bít (tlouci, mlátit)", i_ex: "Hodiny bijí půlnoc, srdce bije." },
+                    { y: "bydlo (živobytí)", y_ex: "Dobré bydlo.", i: "bidlo (dlouhá tyč)", i_ex: "Nadzvedni to dlouhým bidlem." },
+                    { y: "bylina (rostlina)", y_ex: "Léčivá bylina.", i: "bílit (dělat bílým)", i_ex: "Bílil stěnu v pokoji." },
+                    { y: "přibýt (přirost počet)", y_ex: "Přibyl nový žák.", i: "přibít (upevnit hřebíkem)", i_ex: "Přibít obraz na zeď." },
+                    { y: "ubýt (zmenšit se)", y_ex: "Vody v řece ubylo.", i: "ubít (usmrtit, utlouci)", i_ex: "Ubít čas nečinností." },
+                    { y: "býlí (plevel)", y_ex: "Na zahradě roste býlí.", i: "bílý (barva)", i_ex: "Padá bílý sníh." }
+                ]
+            },
+            L: {
+                title: "Vyjmenovaná slova po L",
+                words: [
+                    { word: "slyšet", meaning: "vnímat sluchem", examples: "slyšitelný, nedoslýchavý, slyšení" },
+                    { word: "mlýn", meaning: "zařízení na mletí obilí", examples: "mlynář, mlýnský, mlynářka" },
+                    { word: "blýskat se", meaning: "tvořit blesky, svítit", examples: "blýskavý, blesk, zablyštět se" },
+                    { word: "polykat", meaning: "přijímat potravu krkem", examples: "zalykat se, polykání" },
+                    { word: "plyn", meaning: "plynná látka", examples: "plynový, plynárna, plynný, rozplynout se" },
+                    { word: "plýtvat", meaning: "marnotratně utráčet", examples: "plýtvání, neplýtvej jídlem" },
+                    { word: "lyže", meaning: "sportovní náčiní na sníh", examples: "lyžař, lyžování, lyžařský" },
+                    { word: "lysý", meaning: "holý, bez vlasů či srsti", examples: "lysina, lysý, Lysá hora" },
+                    { word: "lýko", meaning: "vrstva pod kůrou stromu", examples: "lýkový, lýkožrout" },
+                    { word: "lýtko", meaning: "zadní část dolní končetiny", examples: "lýtkový sval" },
+                    { word: "vlys", meaning: "ozdobný pruh na stavbě / parketa", examples: "dřevěný vlys" },
+                    { word: "vzlykat", meaning: "plakat s přerušovaným dechem", examples: "vzlykot, vzlyknutí" }
+                ],
+                homonyms: [
+                    { y: "mlýn (zařízení na mletí)", y_ex: "Větrný mlýn.", i: "mlít (drtit na prášek)", i_ex: "Mlít kávu v mlýnku." },
+                    { y: "lysý (bez vlasů)", y_ex: "Lysý pán s lysinou.", i: "líčit (předstírat / malovat)", i_ex: "Líčit si tvář, líčit past." },
+                    { y: "lýko (pod kůrou)", y_ex: "Stromy mají lýko.", i: "líce (tvář / obličej)", i_ex: "Růžové líce." },
+                    { y: "vyly (vytí psů/vlků)", y_ex: "Vlci hlasitě vyly.", i: "vily (plést věnec)", i_ex: "Dívky vily věnce z kvítí." }
+                ]
+            },
+            M: {
+                title: "Vyjmenovaná slova po M",
+                words: [
+                    { word: "my", meaning: "zájmeno (všichni my)", examples: "my všichni půjdeme" },
+                    { word: "mýt", meaning: "čistit vodou", examples: "mýdlo, myčka, umyvadlo, pomyje" },
+                    { word: "myslit / myslet", meaning: "přemýšlet, mít názor", examples: "myšlenka, mysl, smysl, průmysl, vymyslet" },
+                    { word: "mýlit se", meaning: "dělat chybu", examples: "omyl, mýlka, neomylný" },
+                    { word: "hmyz", meaning: "drobní bezobratlí živočichové", examples: "hmyzí, hmyzožravec" },
+                    { word: "myš", meaning: "drobný hlodavec", examples: "myší, myšák, Myšák Mickey" },
+                    { word: "hlemýžď", meaning: "ulitnatý měkkýš", examples: "hlemýždí tempo" },
+                    { word: "mýtina", meaning: "vykácené místo v lese", examples: "lesní mýtina, mýtiti" },
+                    { word: "zamykat", meaning: "uzavírat klíčem", examples: "zamknout, výmyk, přimknout se" },
+                    { word: "smýkat", meaning: "táhnout po zemi", examples: "smyk, smyčec, průsmyk" },
+                    { word: "mýval", meaning: "medvídkovitá šelma", examples: "mýval severní" }
+                ],
+                homonyms: [
+                    { y: "my (všichni my)", y_ex: "My jdeme do kina.", i: "mi (mně)", i_ex: "Podej mi tu knihu." },
+                    { y: "mýval (zvíře / myl se)", y_ex: "Mýval v ZOO / mýval si ruce.", i: "míval (měl v minulosti)", i_ex: "Míval jsem psa." },
+                    { y: "mýt (čistit vodou)", y_ex: "Mýt nádobí mýdlem.", i: "mít (vlastnit)", i_ex: "Mít rád přátele, mít auto." },
+                    { y: "vymýtit (vykácet)", y_ex: "Vymýtit les.", i: "vymítat (vyhánět)", i_ex: "Vymítat ďábla." },
+                    { y: "smykat (táhnout)", y_ex: "Auto dostalo smyk.", i: "smíkat (smát se / míhat)", i_ex: "Míhat se před očima." }
+                ]
+            },
+            P: {
+                title: "Vyjmenovaná slova po P",
+                words: [
+                    { word: "pýcha", meaning: "povýšenost, hrdost", examples: "pyšný, přepych, pyšnit se" },
+                    { word: "pytel", meaning: "velká obalová taška", examples: "pytlovina, pytlák, pytláctví" },
+                    { word: "pysk", meaning: "ret u zvířat", examples: "pyskatý, ptakopysk" },
+                    { word: "netopýr", meaning: "létající savec", examples: "netopýří křídla" },
+                    { word: "slepýš", meaning: "beznohá ještěrka", examples: "slepýší rodina" },
+                    { word: "pyl", meaning: "prášek v květech", examples: "pylové zrnko, opylovat" },
+                    { word: "kopyto", meaning: "rohovitá část nohy zvířat", examples: "kopytník, sudokopytník" },
+                    { word: "pykat", meaning: "nést trest za chybu", examples: "pykat za své činy" },
+                    { word: "pýr", meaning: "plevelná tráva", examples: "pýrový porost" },
+                    { word: "pýřit se", meaning: "červenat se v obličeji", examples: "zapýřil se studem" },
+                    { word: "čepýřit se", meaning: "čeřit peří, zlobivě naježit", examples: "pták se čepýří" }
+                ],
+                homonyms: [
+                    { y: "pýcha (povýšenost)", y_ex: "Pýcha předchází pád.", i: "píchá (bodá trnem)", i_ex: "Včela píchá, jehla píchá." },
+                    { y: "pyl (v květu)", y_ex: "Včely sbírají pyl.", i: "pil (pít vodu)", i_ex: "Pil studenou limonádu." },
+                    { y: "pyskatý (velké pysky)", y_ex: "Pyskatý kůň.", i: "pískat (vydávat zvuk)", i_ex: "Pískat na píšťalku." },
+                    { y: "slepýš (ještěrka)", y_ex: "Slepýš není had.", i: "slepíš (slepit papír)", i_ex: "Slepíš to lepidlem." }
+                ]
+            },
+            S: {
+                title: "Vyjmenovaná slova po S",
+                words: [
+                    { word: "syn", meaning: "chlapec ve vztahu k rodičům", examples: "synovský, synáček, synek" },
+                    { word: "sýr", meaning: "mléčný výrobek", examples: "sýrový, sýrárna, sýrař" },
+                    { word: "surový", meaning: "nezpracovaný, hrubý", examples: "surovost, surovina" },
+                    { word: "sychravý", meaning: "studený a mokrý (o počasí)", examples: "sychravé podzimní ráno" },
+                    { word: "usychat", meaning: "ztrácet vlhkost", examples: "vysychat, zasychat, schnout" },
+                    { word: "sýkora", meaning: "drobný žlutavý ptáček", examples: "sýkorka, sýkořice" },
+                    { word: "sýček", meaning: "druh malé sovy", examples: "sýčkovat (přivolávat smůlu)" },
+                    { word: "sysel", meaning: "drobný hlodavec", examples: "syslí nora, syslit (hromadit)" },
+                    { word: "syčet", meaning: "vydávat zvuk 'sss'", examples: "sykot, zasyčet" },
+                    { word: "sypat", meaning: "nechat padat sypký materiál", examples: "dosypat, nasypat, sypký, zásyp" }
+                ],
+                homonyms: [
+                    { y: "sýr (mléčný výrobek)", y_ex: "Chutný sýr k snídani.", i: "síra (chemický prvek)", i_ex: "Žlutá síra zápáchá." },
+                    { y: "sýrový (ze sýra)", y_ex: "Sýrová omáčka.", i: "sírový (ze síry)", i_ex: "Kyselina sírová." },
+                    { y: "sypat (sypký materiál)", y_ex: "Sypat zrní slepicím.", i: "sípavý (chraplavý)", i_ex: "Sípavý hlas při nemoci." },
+                    { y: "syrový (nevařený)", y_ex: "Syrové brambory.", i: "sírový (ze síry)", i_ex: "Sírový zápach." }
+                ]
+            },
+            V: {
+                title: "Vyjmenovaná slova po V",
+                words: [
+                    { word: "vy", meaning: "zájmeno (všichni vy)", examples: "vy všichni, vykejte" },
+                    { word: "vysoký", meaning: "velké výšky / vzrůstu", examples: "vysočina, výška, převýšení, Vysočina" },
+                    { word: "vydra", meaning: "vodní šelma", examples: "vydří kožich, Vydrýsek" },
+                    { word: "výr", meaning: "velká sova", examples: "výří houkání" },
+                    { word: "výskat", meaning: "křičet radostí", examples: "výskot, zavýskat" },
+                    { word: "zvyk", meaning: "tradice, obvyklé jednání", examples: "zvyklost, zvykat si, naververbovat" },
+                    { word: "žvýkat", meaning: "rozdrobovat zuby", examples: "žvýkačka, přežvýkavec" },
+                    { word: "vyza", meaning: "druh velké ryby", examples: "vyzí tuk, kaviár" },
+                    { word: "vykat", meaning: "oslovovat zájmenem Vy", examples: "vykání" }
+                ],
+                homonyms: [
+                    { y: "výr (sova)", y_ex: "Výr velký je sova.", i: "vír (otáčivý pohyb vody/vzduchu)", i_ex: "Vzdušný vír, vodní vír." },
+                    { y: "výskat (křičet radostí)", y_ex: "Děti radostně výskají.", i: "vískat (probírat se ve vlasech)", i_ex: "Maminka mě víská ve vlasech." },
+                    { y: "výška (rozměr)", y_ex: "Měřit výšku budovy.", i: "vížka (malá věžička)", i_ex: "Kostelní vížka." },
+                    { y: "vypýšit se (zpyšnět)", y_ex: "Vypýšil se výhrou.", i: "vypískať (vypískat někoho)", i_ex: "Vypískat špatný výkon." }
+                ]
+            },
+            Z: {
+                title: "Vyjmenovaná slova po Z",
+                words: [
+                    { word: "brzy", meaning: "za krátkou dobu", examples: "brzký, brzičko (pozor: zdrobnělina má i!)" },
+                    { word: "jazyk", meaning: "orgán v ústech / mluva", examples: "jazykový, jazýček, dvojjazyčný, jazykověda" },
+                    { word: "nazývat (se)", meaning: "dávat jméno", examples: "název, ozvat se, přezdívka, vyzvat" },
+                    { word: "Ruzyně", meaning: "čtvrť v Praze s letištěm", examples: "ruzyňské letiště" }
+                ],
+                homonyms: [
+                    { y: "brzy (za chvíli)", y_ex: "Brzy přijdu domů.", i: "brzičko (VÝJIMKA zdrobnělina)", i_ex: "Brzičko bude ráno." },
+                    { y: "nazývat se (mít jméno)", y_ex: "Jak se nazývá tato řeka?", i: "zívat (otvírat pusu únavou)", i_ex: "Hlasitě zívat únavou." }
+                ]
+            }
+        };
+
+        /**
+         * Rich Sentences Database with Homonym / Tricky Tags
+         */
+        const SENTENCES = [
+            // B
+            { s: "Chci b_t dobrým kamarádem.", ans: "y", rule: "být = existovat (vyjmenované slovo)", category: "B", hint: "Sloveso vyjadřující existenci někoho nebo nečeho.", isHomonym: true, homonymTip: "být (existovat) x bít (tlouci někoho)" },
+            { s: "Srdce mu hlasitě b_lo strachy.", ans: "i", rule: "bít = tlouci, klepat (není vyjmenované)", category: "B", hint: "Srdeční rytmus nebo tlučení.", isHomonym: true, homonymTip: "bít (tlouci) x být (existovat)" },
+            { s: "Máme krásný nový b_t v centru.", ans: "y", rule: "byt = obydlí (příbuzné k bydlet)", category: "B", hint: "Místo k bydlení.", isHomonym: false },
+            { s: "Nadzvedni tu větev dlouhým b_dlem.", ans: "i", rule: "bidlo = dlouhá tyč (není vyjmenované)", category: "B", hint: "Dlouhá dřevěná tyč.", isHomonym: true, homonymTip: "bidlo (tyč) x bydlo (domov/živobytí)" },
+            { s: "V ohradě se pásl černý b_k.", ans: "y", rule: "býk = samčí tur (vyjmenované slovo)", category: "B", hint: "Samčí kousek tura domácího.", isHomonym: false },
+            { s: "Babička vaří čaj z léčitelných b_lin.", ans: "y", rule: "bylina = rostlina (vyjmenované slovo)", category: "B", hint: "Rostlina s dužnatým stonkem.", isHomonym: false },
+            { s: "Malíř b_lil zdi v obývacím pokoji.", ans: "í", rule: "bílit = dělat bílým (není vyjmenované)", category: "B", hint: "Natírat na bílo.", isHomonym: true, homonymTip: "bílit (malovat) x bylina (rostlina)" },
+            { s: "Na zahradě roste nebezpečné b_lí.", ans: "ý", rule: "býlí = plevel (vyjmenované slovo)", category: "B", hint: "Plevelná tráva.", isHomonym: true, homonymTip: "býlí (plevel) x bílý (barva)" },
+            { s: "Sněhový poprašek byl úplně b_lý.", ans: "í", rule: "bílý = barva (není vyjmenované)", category: "B", hint: "Sněhová barva.", isHomonym: true, homonymTip: "bílý (barva) x býlí (plevel)" },
+            { s: "Pravidelně u nás přeb_vá strýček.", ans: "ý", rule: "přebývat = být někde (příbuzné k být)", category: "B", hint: "Být někde na návštěvě.", isHomonym: false },
+            { s: "Musíme přib_t obraz na zeď.", ans: "í", rule: "přibít = zatlouci hřebíkem (není vyjmenované)", category: "B", hint: "Připevnit hřebíkem.", isHomonym: true, homonymTip: "přibít hřebíkem x přibýt v počtu" },
+
+            // L
+            { s: "Z dálky bylo sl_šet houkání vlaku.", ans: "y", rule: "slyšet = vnímat sluchem (vyjmenované slovo)", category: "L", hint: "Vnímat zvuk ušima.", isHomonym: false },
+            { s: "Starý ml_nář mlel mouku ve ml_ně.", ans: "ý", rule: "mlýn = zařízení na mletí (vyjmenované slovo)", category: "L", hint: "Budova s mlýnským kolem.", isHomonym: true, homonymTip: "mlýn (budova) x mlít kávu" },
+            { s: "Kuchař ml_l kávu v ručním mlýnku.", me: "í", ans: "í", rule: "mlít = drtit na prášek (není vyjmenované)", category: "L", hint: "Činnost mletí zrn.", isHomonym: true, homonymTip: "mlít kávu (s í) x mlýn (s ý)" },
+            { s: "Na obloze se b_skalo a hřmělo.", ans: "ý", rule: "blýskat se = tvořit blesky (vyjmenované slovo)", category: "L", hint: "Záření blesků při bouřce.", isHomonym: false },
+            { s: "Pol_kej jídlo pomalu.", ans: "y", rule: "polykat = přijímat potravu (vyjmenované slovo)", category: "L", hint: "Posouvat sousto v krku.", isHomonym: false },
+            { s: "V zimě rádi l_žujeme na horách.", ans: "y", rule: "lyže = sportovní náčiní (vyjmenované slovo)", category: "L", hint: "Zimní sport na sněhu.", isHomonym: false },
+            { s: "Pán má na hlavě velkou l_sinu.", ans: "y", rule: "lysý = bez vlasů (vyjmenované slovo)", category: "L", hint: "Místo bez vlasů.", isHomonym: true, homonymTip: "lysý (holý) x líčit (předstírat)" },
+            { s: "Myslivec l_čí past na lišku.", ans: "í", rule: "líčit = chystat past (není vyjmenované)", category: "L", hint: "Příprava pasti.", isHomonym: true, homonymTip: "líčit past x lysý kůň" },
+            { s: "L_kožrout smrkový napadl stromy.", ans: "ý", rule: "lýko = vrstva pod kůrou (vyjmenované slovo)", category: "L", hint: "Škůdce stromů.", isHomonym: true, homonymTip: "lýko (pod kůrou) x líce (tvář)" },
+            { s: "Dívky v_ly krásné věnce z kvítí.", ans: "i", rule: "vít = plést věnce (sloveso vít -> vily)", category: "L", hint: "Plést květiny do věnce.", isHomonym: true, homonymTip: "vily věnce (plétaly) x vlci vyly (řvaly)" },
+
+            // M
+            { s: "Včely a motýli patří mezi hm_z.", ans: "y", rule: "hmyz = bezobratlí (vyjmenované slovo)", category: "M", hint: "Drobná šestinohá zvířátka.", isHomonym: false },
+            { s: "Musíš si důkladně m_t ruce mýdlem.", ans: "ý", rule: "mýt = čistit vodou (vyjmenované slovo)", category: "M", hint: "Čištění vodou a mýdlem.", isHomonym: true, homonymTip: "mýt ruce (čistit) x mít auto (vlastnit)" },
+            { s: "Chci m_t hodně dobrých přátel.", ans: "í", rule: "mít = vlastnit (není vyjmenované)", category: "M", hint: "Vlastnit někoho/něco.", isHomonym: true, homonymTip: "mít rád x mýt se" },
+            { s: "M_ všichni půjdeme do kina.", ans: "y", rule: "my = zájmeno (vyjmenované slovo)", category: "M", hint: "Skupina lidi včetně mě.", isHomonym: true, homonymTip: "my všichni x dej mi to" },
+            { s: "Podej m_ prosím tu knihu.", ans: "i", rule: "mi = zájmeno mně (není vyjmenované)", category: "M", hint: "Mně osobně.", isHomonym: true, homonymTip: "dej mi x my všichni" },
+            { s: "V ZOO jsme viděli m_vala u potoka.", ans: "ý", rule: "mýval = šelma (vyjmenované slovo)", category: "M", hint: "Zvíře medvídek mýval.", isHomonym: true, homonymTip: "mýval (zvíře) x míval (měl dříve)" },
+            { s: "Dědeček m_val v mládí motocykl.", ans: "í", rule: "míval = měl v minulosti (není vyjmenované)", category: "M", hint: "Vlastnil dříve.", isHomonym: true, homonymTip: "míval psa x mýval v lesích" },
+            { s: "Hlem_žď se pohybuje velmi pomalu.", ans: "ý", rule: "hlemýžď = měkkýš (vyjmenované slovo)", category: "M", hint: "Pomalé zvíře s ulitou.", isHomonym: false },
+            { s: "Byla to jen nešťastná m_lka.", ans: "ý", rule: "mýlit se = dělat chybu (vyjmenované slovo)", category: "M", hint: "Chyba nebo omyl.", isHomonym: false },
+            { s: "Nezapomeň zam_kat dveře klíčem.", ans: "y", rule: "zamykat = zamykání (příbuzné k zamknout)", category: "M", hint: "Otočit klíčem v zámku.", isHomonym: false },
+
+            // P
+            { s: "P_cha předchází pád, říká přísloví.", ans: "ý", rule: "pýcha = povýšenost (vyjmenované slovo)", category: "P", hint: "Povýšenost a namyšlenost.", isHomonym: true, homonymTip: "pýcha x píchá trnem" },
+            { s: "Růže p_chá svými ostrými trny.", ans: "í", rule: "píchat = bodat (není vyjmenované)", category: "P", hint: "Bodat ostrým předmětem.", isHomonym: true, homonymTip: "píchá trn x pýcha člověka" },
+            { s: "Brambory jsou schované v p_tli.", ans: "y", rule: "pytel = obalová taška (vyjmenované slovo)", category: "P", hint: "Pytel brambor.", isHomonym: false },
+            { s: "Kůň jemně pohnul svými p_sky.", ans: "y", rule: "pysk = zvířecí ret (vyjmenované slovo)", category: "P", hint: "Rty zvířat.", isHomonym: true, homonymTip: "pysk (ret) x pískat na píšťalku" },
+            { s: "Rozhodčí začal p_skat na píšťalku.", ans: "í", rule: "pískat = vydávat zvuk (není vyjmenované)", category: "P", hint: "Pískání píšťalkou.", isHomonym: true, homonymTip: "pískat x zvířecí pysk" },
+            { s: "Nocí tiše létá netop_r.", ans: "ý", rule: "netopýr = savec (vyjmenované slovo)", category: "P", hint: "Létající noční savec.", isHomonym: false },
+            { s: "Slep_š je beznohá ještěrka.", ans: "ý", rule: "slepýš = ještěrka (vyjmenované slovo)", category: "P", hint: "Ještěrka vypadající jako had.", isHomonym: false },
+            { s: "Včely sbírají p_l z květů.", ans: "y", rule: "pyl = prášek v květech (vyjmenované slovo)", category: "P", hint: "Žlutý prášek v květu.", isHomonym: true, homonymTip: "pyl (v květu) x pil (vodu)" },
+            { s: "Chlapec p_l studenou limonádu.", ans: "i", rule: "pít = konzumovat tekutinu (minulý čas pil)", category: "P", hint: "Pít tekutinu.", isHomonym: true, homonymTip: "pil vodu x pylové zrnko" },
+            { s: "Kůň má na nohách tvrdá kop_ta.", ans: "y", rule: "kopyto = zakončení nohy (vyjmenované slovo)", category: "P", hint: "Noha koně.", isHomonym: false },
+
+            // S
+            { s: "Můj s_n chodí do páté třídy.", ans: "y", rule: "syn = potomek (vyjmenované slovo)", category: "S", hint: "Chlapec rodičů.", isHomonym: false },
+            { s: "Krájel jsem čerstvý s_r na chléb.", ans: "ý", rule: "sýr = mléčný výrobek (vyjmenované slovo)", category: "S", hint: "Jídlo z mléka.", isHomonym: true, homonymTip: "sýr (k jídlu) x síra (chemie)" },
+            { s: "V chemické laboratoři páchla s_ra.", ans: "í", rule: "síra = chemický prvek (není vyjmenované)", category: "S", hint: "Žlutý chemický prvek.", isHomonym: true, homonymTip: "síra (chemie) x sýr (jídlo)" },
+            { s: "Venku bylo s_chravé počasí.", ans: "y", rule: "sychravý = studený a mokrý (vyjmenované slovo)", category: "S", hint: "Studený podzimní deštivý den.", isHomonym: false },
+            { s: "Na krmítku přistála s_korka.", ans: "ý", rule: "sýkora = ptáček (vyjmenované slovo)", category: "S", hint: "Malý žlutý ptáček.", isHomonym: false },
+            { s: "S_ček v noci houkal v lese.", ans: "ý", rule: "sýček = sova (vyjmenované slovo)", category: "S", hint: "Malá sova.", isHomonym: false },
+            { s: "S_sel si ukládá zásoby do nory.", ans: "y", rule: "sysel = hlodavec (vyjmenované slovo)", category: "S", hint: "Polní hlodavec.", isHomonym: false },
+            { s: "Had zasyčel a zalezl pod kámen.", ans: "y", rule: "syčet = vydávat zvuk sss (vyjmenované slovo)", category: "S", hint: "Zvuk sss.", isHomonym: false },
+            { s: "Babička s_pala zrní slepicím.", ans: "y", rule: "sypat = nechat padat sypký materiál (vyjmenované)", category: "S", hint: "Sypat zrno.", isHomonym: false },
+            { s: "Dostal jsem na kašel sladký s_rup.", ans: "i", rule: "sirup = ovocná šťáva (POZOR! Není vyjmenované slovo!)", category: "S", hint: "Sladká šťáva na kašel.", isHomonym: true, homonymTip: "sirup se píše s měkkým i!" },
+
+            // V
+            { s: "Půjdete v_ všichni na výlet?", ans: "y", rule: "vy = zájmeno (vyjmenované slovo)", category: "V", hint: "Množné číslo vy všichni.", isHomonym: false },
+            { s: "Na Vysočině jsou v_soké kopce.", ans: "y", rule: "vysoký = velký vzrůst (vyjmenované slovo)", category: "V", hint: "Velká výška.", isHomonym: false },
+            { s: "V řece plavala mrštná v_dra.", ans: "y", rule: "vydra = vodní šelma (vyjmenované slovo)", category: "V", hint: "Vodní živočich.", isHomonym: false },
+            { s: "V_r velký je naše největší sova.", ans: "ý", rule: "výr = sova (vyjmenované slovo)", category: "V", hint: "Největší česká sova.", isHomonym: true, homonymTip: "výr (sova) x vír (ve vodě)" },
+            { s: "Vodní v_r vtáhl lodičku pod hladinu.", ans: "í", rule: "vír = otáčivý pohyb (není vyjmenované)", category: "V", hint: "Kroutící se voda.", isHomonym: true, homonymTip: "vír (ve vodě) x výr (sova)" },
+            { s: "Děti radostně v_skaly na hřišti.", ans: "ý", rule: "výskat = křičet radostí (vyjmenované slovo)", category: "V", hint: "Křičet s radostí.", isHomonym: true, homonymTip: "výskat radostí x vískat ve vlasech" },
+            { s: "Maminka mě něžně v_skala ve vlasech.", ans: "í", rule: "vískat = probírat se ve vlasech (není vyjmenované)", category: "V", hint: "Jemně hladit ve vlasech.", isHomonym: true, homonymTip: "vískat ve vlasech x výskat radostí" },
+            { s: "Máme z_k čištit si zuby.", ans: "vy", rule: "zvyk = zvyklost (vyjmenované slovo)", category: "V", hint: "Pravidelná tradice.", isHomonym: false },
+            { s: "Kráva je přežv_kavec.", ans: "ý", rule: "žvýkat = žvýkání (vyjmenované slovo)", category: "V", hint: "Drcení potravy v ústech.", isHomonym: false },
+
+            // Z
+            { s: "Brz_ ráno vstáváme do školy.", ans: "y", rule: "brzy = za krátkou dobu (vyjmenované slovo)", category: "Z", hint: "Časně ráno.", isHomonym: true, homonymTip: "brzy (s Y) x brzičko (s I)" },
+            { s: "Brz_čko bude svítat.", ans: "i", rule: "brzičko = VÝJIMKA! Zdrobnělina má měkké i!", category: "Z", hint: "Zdrobnělina slovíčka brzy.", isHomonym: true, homonymTip: "brzičko je výjimka s měkkým i!" },
+            { s: "Český jaz_k je náš rodný jazyk.", ans: "y", rule: "jazyk = orgán / mluva (vyjmenované slovo)", category: "Z", hint: "Mateřská mluva.", isHomonym: false },
+            { s: "Jak se naz_vá to nové město?", ans: "ý", rule: "nazývat = dávala jméno (vyjmenované slovo)", category: "Z", hint: "Pojmenovávat.", isHomonym: true, homonymTip: "nazývat (jméno) x zívat (únavou)" },
+            { s: "Unavený chlapec hlasitě z_val.", ans: "í", rule: "zívat = otvírat ústa únavou (není vyjmenované)", category: "Z", hint: "Otvírat pusu z únavy.", isHomonym: true, homonymTip: "zívat únavou x nazývat jménem" }
+        ];
+
+        /**
+         * Badges / Achievements Definitions
+         */
+        const BADGES = [
+            { id: "first_win", name: "První krok", desc: "Získej 1. správnou odpověď", icon: "fa-star", color: "text-amber-500 bg-amber-100" },
+            { id: "streak_5", name: "Ostré pero", desc: "Dosáhni 5 správných v řadě", icon: "fa-pen-nib", color: "text-blue-500 bg-blue-100" },
+            { id: "streak_10", name: "Plamínek", desc: "Dosáhni 10 správných v řadě", icon: "fa-fire", color: "text-orange-500 bg-orange-100" },
+            { id: "test_perfect", name: "Slovní mistr", desc: "Dokonči test se známkou 1", icon: "fa-award", color: "text-purple-500 bg-purple-100" },
+            { id: "homonym_hunter", name: "Lovec chytáků", desc: "Odpověz správně na 5 záludných chytáků", icon: "fa-bullseye", color: "text-red-500 bg-red-100" },
+            { id: "explorer", name: "Knihovník", desc: "Prozkoumej výukový slovník", icon: "fa-book-open", color: "text-emerald-500 bg-emerald-100" },
+            { id: "level_5", name: "Zkušený žák", desc: "Dosáhni 5. úrovně (Level 5)", icon: "fa-shield-halved", color: "text-indigo-500 bg-indigo-100" },
+            { id: "master_all", name: "Mistr Češtiny", desc: "Dosáhni 10. úrovně (Level 10)", icon: "fa-crown", color: "text-yellow-600 bg-yellow-100" }
+        ];
+
+        /**
+         * Levels Configuration
+         */
+        const LEVELS = [
+            { level: 1, title: "Začátečník", minXp: 0 },
+            { level: 2, title: "Školák", minXp: 50 },
+            { level: 3, title: "Písař", minXp: 120 },
+            { level: 4, title: "Slovníček", minXp: 220 },
+            { level: 5, title: "Zkušený žák", minXp: 350 },
+            { level: 6, title: "Pravopisec", minXp: 520 },
+            { level: 7, title: "Jazykovědec", minXp: 720 },
+            { level: 8, title: "Profesor", minXp: 950 },
+            { level: 9, title: "Mág Mluvnice", minXp: 1250 },
+            { level: 10, title: "Mistr Češtiny", minXp: 1600 }
+        ];
+
+        /**
+         * Web Audio API Synthesizer Sound Manager
+         */
+        class SoundManager {
+            constructor() {
+                this.enabled = true;
+                this.ctx = null;
+            }
+
+            initCtx() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+            }
+
+            playClick() {
+                if (!this.enabled) return;
+                this.initCtx();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.05);
+            }
+
+            playCorrect() {
+                if (!this.enabled) return;
+                this.initCtx();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.08); // E5
+                osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.16); // G5
+
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+
+            playWrong() {
+                if (!this.enabled) return;
+                this.initCtx();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.linearRampToValueAtTime(150, now + 0.25);
+
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+
+            playBadge() {
+                if (!this.enabled) return;
+                this.initCtx();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.12, now + idx * 0.07);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.07);
+                    osc.stop(now + idx * 0.07 + 0.25);
+                });
+            }
+        }
+
+        /**
+         * Main Application Controller Class
+         */
+        class App {
+            constructor() {
+                this.sound = new SoundManager();
+                
+                // User Progress State (Persisted)
+                this.xp = parseInt(localStorage.getItem('vyj_xp') || '0');
+                this.streak = parseInt(localStorage.getItem('vyj_streak') || '0');
+                this.unlockedBadges = new Set(JSON.parse(localStorage.getItem('vyj_badges') || '[]'));
+                this.homonymsCorrectCount = parseInt(localStorage.getItem('vyj_homonyms_count') || '0');
+
+                // Selection Settings
+                this.selectedConsonants = ['ALL'];
+                this.homonymsOnlyFilter = false;
+                this.currentMode = 'practice'; // 'practice', 'test', 'cards'
+
+                // Practice Mode State
+                this.practiceQueue = [];
+                this.currentPracticeItem = null;
+                this.practiceScore = { correct: 0, total: 0 };
+
+                // Test Mode State
+                this.testQuestions = [];
+                this.testCurrentIdx = 0;
+                this.testUserAnswers = [];
+                this.testType = 'questions'; // 'questions' or 'time'
+                this.testParamValue = 10; // 10,20,30 or 60,120
+                this.testTimerSeconds = 0;
+                this.testTimerInterval = null;
+
+                // Cards State
+                this.currentCardCategory = 'B';
+
+                this.init();
+            }
+
+            init() {
+                this.renderConsonantSelector();
+                this.updateTestConfigUI();
+                this.renderBadges();
+                this.updateGamificationUI();
+            }
+
+            toggleSound() {
+                this.sound.enabled = !this.sound.enabled;
+                const btn = document.getElementById('sound-btn');
+                if (this.sound.enabled) {
+                    btn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                    btn.classList.remove('text-slate-400');
+                    btn.classList.add('text-slate-600');
+                } else {
+                    btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+                    btn.classList.add('text-slate-400');
+                    btn.classList.remove('text-slate-600');
+                }
+            }
+
+            navTo(secId) {
+                this.sound.playClick();
+                const sections = ['sec-home', 'sec-practice', 'sec-test', 'sec-test-result', 'sec-cards'];
+                sections.forEach(s => document.getElementById(s).classList.add('hidden'));
+                
+                document.getElementById(`sec-${secId}`).classList.remove('hidden');
+
+                if (secId !== 'test' && this.testTimerInterval) {
+                    clearInterval(this.testTimerInterval);
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            renderConsonantSelector() {
+                const container = document.getElementById('consonant-selector');
+                const list = ['ALL', 'B', 'L', 'M', 'P', 'S', 'V', 'Z'];
+
+                container.innerHTML = list.map(c => {
+                    const isAll = c === 'ALL';
+                    const isSelected = this.selectedConsonants.includes(c);
+                    const label = isAll ? 'Všechny' : c;
+                    const activeClass = isSelected
+                        ? 'bg-purple-600 text-white border-purple-600 font-bold scale-105 shadow-sm'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-purple-300 font-semibold';
+
+                    return `
+                        <button onclick="app.toggleConsonant('${c}')" class="py-2.5 px-3 rounded-xl border text-xs sm:text-sm transition-all btn-bounce ${activeClass}">
+                            ${label}
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            toggleConsonant(c) {
+                this.sound.playClick();
+                if (c === 'ALL') {
+                    this.selectedConsonants = ['ALL'];
+                } else {
+                    if (this.selectedConsonants.includes('ALL')) {
+                        this.selectedConsonants = [];
+                    }
+                    if (this.selectedConsonants.includes(c)) {
+                        this.selectedConsonants = this.selectedConsonants.filter(item => item !== c);
+                    } else {
+                        this.selectedConsonants.push(c);
+                    }
+                    if (this.selectedConsonants.length === 0) {
+                        this.selectedConsonants = ['ALL'];
+                    }
+                }
+                this.renderConsonantSelector();
+            }
+
+            toggleHomonymFilter() {
+                this.sound.playClick();
+                this.homonymsOnlyFilter = document.getElementById('filter-homonyms-only').checked;
+            }
+
+            selectMode(mode) {
+                this.sound.playClick();
+                this.currentMode = mode;
+                const modes = ['practice', 'test', 'cards'];
+                modes.forEach(m => {
+                    const el = document.getElementById(`mode-${m}`);
+                    if (m === mode) {
+                        el.classList.add('border-purple-500', 'bg-purple-50/50');
+                        el.classList.remove('border-slate-200', 'bg-white');
+                    } else {
+                        el.classList.remove('border-purple-500', 'bg-purple-50/50');
+                        el.classList.add('border-slate-200', 'bg-white');
+                    }
+                });
+
+                // Toggle test config panel
+                const testConfigPanel = document.getElementById('test-config-panel');
+                const startBtnLabel = document.getElementById('start-btn-label');
+
+                if (mode === 'test') {
+                    testConfigPanel.classList.remove('hidden');
+                    startBtnLabel.innerText = 'Spustit testovou výzvu';
+                } else if (mode === 'cards') {
+                    testConfigPanel.classList.add('hidden');
+                    startBtnLabel.innerText = 'Otevřít výukový slovník';
+                } else {
+                    testConfigPanel.classList.add('hidden');
+                    startBtnLabel.innerText = 'Spustit procvičování';
+                }
+            }
+
+            updateTestConfigUI() {
+                this.testType = document.getElementById('test-type-select').value;
+                const paramLabel = document.getElementById('test-param-label');
+                const paramSelect = document.getElementById('test-param-select');
+
+                if (this.testType === 'questions') {
+                    paramLabel.innerText = 'Zvol počet otázek:';
+                    paramSelect.innerHTML = `
+                        <option value="10">10 otázek</option>
+                        <option value="20">20 otázek</option>
+                        <option value="30">30 otázek</option>
+                    `;
+                } else {
+                    paramLabel.innerText = 'Zvol časový limit:';
+                    paramSelect.innerHTML = `
+                        <option value="60">60 sekund (1 minuta)</option>
+                        <option value="120">120 sekund (2 minuty)</option>
+                    `;
+                }
+            }
+
+            startSelectedMode() {
+                if (this.currentMode === 'practice') {
+                    this.startPractice();
+                } else if (this.currentMode === 'test') {
+                    this.startTest();
+                } else if (this.currentMode === 'cards') {
+                    this.startCards();
+                }
+            }
+
+            getFilteredPool() {
+                let pool = [...SENTENCES];
+                if (!this.selectedConsonants.includes('ALL')) {
+                    pool = pool.filter(item => this.selectedConsonants.includes(item.category));
+                }
+                if (this.homonymsOnlyFilter) {
+                    pool = pool.filter(item => item.isHomonym === true);
+                }
+                return pool;
+            }
+
+            /* ================= PRACTICE MODE LOGIC ================= */
+            startPractice() {
+                const pool = this.getFilteredPool();
+                if (pool.length === 0) {
+                    alert("Pro zadaný filtr nebyly nalezeny žádné otázky. Upravte výběr písmen.");
+                    return;
+                }
+
+                this.practiceQueue = [...pool].sort(() => Math.random() - 0.5);
+                this.practiceScore = { correct: 0, total: 0 };
+
+                let catText = this.selectedConsonants.includes('ALL') ? 'Všechny' : this.selectedConsonants.join(', ');
+                if (this.homonymsOnlyFilter) catText += ' (Pouze chytáky)';
+
+                document.getElementById('practice-category-tag').innerText = `Skupina: ${catText}`;
+                this.updatePracticeScoreUI();
+                this.navTo('practice');
+                this.loadNextPracticeItem();
+            }
+
+            loadNextPracticeItem() {
+                if (this.practiceQueue.length === 0) {
+                    this.practiceQueue = [...this.getFilteredPool()].sort(() => Math.random() - 0.5);
+                }
+
+                this.currentPracticeItem = this.practiceQueue.pop();
+
+                // Hide Feedback & Hint Box
+                document.getElementById('practice-feedback').classList.add('hidden');
+                document.getElementById('practice-hint-box').classList.add('hidden');
+
+                // Enable option buttons
+                const btns = document.querySelectorAll('#practice-options button');
+                btns.forEach(b => {
+                    b.disabled = false;
+                    b.className = "opt-btn py-4 bg-slate-50 hover:bg-purple-50 border-2 border-slate-200 hover:border-purple-400 text-slate-800 font-bold text-2xl font-display rounded-2xl transition-all btn-bounce shadow-sm";
+                });
+
+                // Display sentence placeholder
+                const sentenceHtml = this.currentPracticeItem.s.replace('_', '<span class="inline-block px-3 py-0.5 bg-purple-100 text-purple-700 border-b-4 border-purple-500 rounded-lg font-bold mx-1 animate-pulse">?</span>');
+                document.getElementById('practice-sentence').innerHTML = sentenceHtml;
+            }
+
+            togglePracticeHint() {
+                this.sound.playClick();
+                const hintBox = document.getElementById('practice-hint-box');
+                const hintText = document.getElementById('practice-hint-text');
+
+                if (hintBox.classList.contains('hidden')) {
+                    hintBox.classList.remove('hidden');
+                    hintText.innerText = this.currentPracticeItem.hint || "Vezmi v úvahu význam slova ve větě.";
+                } else {
+                    hintBox.classList.add('hidden');
+                }
+            }
+
+            answerPractice(ans) {
+                const item = this.currentPracticeItem;
+                const isCorrect = ans.toLowerCase() === item.ans.toLowerCase();
+
+                // Disable options
+                const btns = document.querySelectorAll('#practice-options button');
+                btns.forEach(b => b.disabled = true);
+
+                this.practiceScore.total++;
+
+                if (isCorrect) {
+                    this.sound.playCorrect();
+                    this.streak++;
+                    this.practiceScore.correct++;
+                    this.addXp(10);
+
+                    if (item.isHomonym) {
+                        this.homonymsCorrectCount++;
+                        localStorage.setItem('vyj_homonyms_count', this.homonymsCorrectCount);
+                    }
+
+                    // Reveal sentence
+                    const sentenceHtml = item.s.replace('_', `<span class="inline-block px-3 py-0.5 bg-emerald-500 text-white rounded-lg font-bold mx-1 animate-bounceShort">${item.ans}</span>`);
+                    document.getElementById('practice-sentence').innerHTML = sentenceHtml;
+
+                    this.showPracticeFeedback(true, "Skvěle! Správná odpověď 🎉", item.rule, item.homonymTip);
+                } else {
+                    this.sound.playWrong();
+                    this.streak = 0;
+
+                    // Reveal sentence
+                    const sentenceHtml = item.s.replace('_', `<span class="inline-block px-3 py-0.5 bg-red-500 text-white rounded-lg font-bold mx-1 animate-shake">${item.ans}</span>`);
+                    document.getElementById('practice-sentence').innerHTML = sentenceHtml;
+
+                    this.showPracticeFeedback(false, `Chyba! Správná odpověď je "${item.ans}"`, item.rule, item.homonymTip);
+                }
+
+                localStorage.setItem('vyj_streak', this.streak);
+                this.checkBadges();
+                this.updatePracticeScoreUI();
+                this.updateGamificationUI();
+            }
+
+            showPracticeFeedback(isCorrect, title, rule, homonymTip) {
+                const fb = document.getElementById('practice-feedback');
+                const titleEl = document.getElementById('feedback-title');
+                const explEl = document.getElementById('feedback-explanation');
+                const xpGainEl = document.getElementById('feedback-xp-gain');
+                const homonymBox = document.getElementById('feedback-homonym-tip');
+                const homonymText = document.getElementById('feedback-homonym-text');
+
+                fb.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'bg-red-50', 'border-red-200');
+
+                if (isCorrect) {
+                    fb.classList.add('bg-emerald-50', 'border-emerald-200');
+                    titleEl.className = "flex items-center gap-2 text-lg font-bold font-display text-emerald-800";
+                    titleEl.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> ${title}`;
+                    xpGainEl.classList.remove('hidden');
+                } else {
+                    fb.classList.add('bg-red-50', 'border-red-200');
+                    titleEl.className = "flex items-center gap-2 text-lg font-bold font-display text-red-800";
+                    titleEl.innerHTML = `<i class="fa-solid fa-circle-xmark text-red-500"></i> ${title}`;
+                    xpGainEl.classList.add('hidden');
+                }
+
+                explEl.innerText = `Odůvodnění: ${rule}`;
+
+                if (homonymTip) {
+                    homonymBox.classList.remove('hidden');
+                    homonymText.innerText = homonymTip;
+                } else {
+                    homonymBox.classList.add('hidden');
+                }
+            }
+
+            nextPracticeQuestion() {
+                this.sound.playClick();
+                this.loadNextPracticeItem();
+            }
+
+            updatePracticeScoreUI() {
+                document.getElementById('practice-score-correct').innerText = this.practiceScore.correct;
+                document.getElementById('practice-score-total').innerText = this.practiceScore.total;
+            }
+
+            /* ================= TEST MODE LOGIC ================= */
+            startTest() {
+                const pool = this.getFilteredPool();
+                if (pool.length < 5) {
+                    alert("Pro zadaný filtr je v testu nedostačující počet otázek. Zvolte více skupin.");
+                    return;
+                }
+
+                this.testType = document.getElementById('test-type-select').value;
+                this.testParamValue = parseInt(document.getElementById('test-param-select').value);
+
+                if (this.testType === 'questions') {
+                    const count = Math.min(this.testParamValue, pool.length);
+                    this.testQuestions = [...pool].sort(() => Math.random() - 0.5).slice(0, count);
+                } else {
+                    // For time based test, pick 30 random questions
+                    this.testQuestions = [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(30, pool.length));
+                }
+
+                this.testCurrentIdx = 0;
+                this.testUserAnswers = [];
+                this.testTimerSeconds = this.testType === 'time' ? this.testParamValue : 0;
+
+                document.getElementById('test-total-count').innerText = this.testQuestions.length;
+                this.navTo('test');
+                this.loadTestQuestion();
+
+                // Timer Setup
+                if (this.testTimerInterval) clearInterval(this.testTimerInterval);
+                this.updateTestTimerDisplay();
+
+                this.testTimerInterval = setInterval(() => {
+                    if (this.testType === 'time') {
+                        this.testTimerSeconds--;
+                        this.updateTestTimerDisplay();
+                        if (this.testTimerSeconds <= 0) {
+                            this.finishTest();
+                        }
+                    } else {
+                        this.testTimerSeconds++;
+                        this.updateTestTimerDisplay();
+                    }
+                }, 1000);
+            }
+
+            updateTestTimerDisplay() {
+                const mins = String(Math.floor(Math.abs(this.testTimerSeconds) / 60)).padStart(2, '0');
+                const secs = String(Math.abs(this.testTimerSeconds) % 60).padStart(2, '0');
+                document.getElementById('test-timer-display').innerText = `${mins}:${secs}`;
+            }
+
+            loadTestQuestion() {
+                const q = this.testQuestions[this.testCurrentIdx];
+                document.getElementById('test-current-index').innerText = this.testCurrentIdx + 1;
+
+                const pct = (this.testCurrentIdx / this.testQuestions.length) * 100;
+                document.getElementById('test-progress-bar').style.width = `${pct}%`;
+
+                const sentenceHtml = q.s.replace('_', '<span class="inline-block px-3 py-0.5 bg-pink-100 text-pink-700 border-b-4 border-pink-500 rounded-lg font-bold mx-1">?</span>');
+                document.getElementById('test-sentence').innerHTML = sentenceHtml;
+            }
+
+            answerTest(ans) {
+                const q = this.testQuestions[this.testCurrentIdx];
+                const isCorrect = ans.toLowerCase() === q.ans.toLowerCase();
+
+                this.testUserAnswers.push({
+                    question: q,
+                    userAns: ans,
+                    isCorrect: isCorrect
+                });
+
+                if (isCorrect) {
+                    this.sound.playCorrect();
+                    this.streak++;
+                    this.addXp(15);
+                    if (q.isHomonym) {
+                        this.homonymsCorrectCount++;
+                        localStorage.setItem('vyj_homonyms_count', this.homonymsCorrectCount);
+                    }
+                } else {
+                    this.sound.playWrong();
+                    this.streak = 0;
+                }
+
+                localStorage.setItem('vyj_streak', this.streak);
+                this.checkBadges();
+                this.updateGamificationUI();
+
+                this.testCurrentIdx++;
+                if (this.testCurrentIdx < this.testQuestions.length) {
+                    this.loadTestQuestion();
+                } else {
+                    this.finishTest();
+                }
+            }
+
+            cancelTest() {
+                if (confirm("Opravdu chceš ukončit test bez vyhodnocení?")) {
+                    this.navTo('home');
+                }
+            }
+
+            finishTest() {
+                clearInterval(this.testTimerInterval);
+
+                const correctCount = this.testUserAnswers.filter(a => a.isCorrect).length;
+                const totalCount = this.testUserAnswers.length;
+                const percent = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+
+                // Calculate Grade (1 to 5)
+                let grade = 5;
+                if (percent >= 90) grade = 1;
+                else if (percent >= 75) grade = 2;
+                else if (percent >= 60) grade = 3;
+                else if (percent >= 45) grade = 4;
+
+                document.getElementById('res-grade').innerText = grade;
+                document.getElementById('res-percent').innerText = `${percent}%`;
+                document.getElementById('res-score-count').innerText = `${correctCount}/${totalCount}`;
+
+                // Calculate Time Taken Text
+                let timeText = "00:00";
+                if (this.testType === 'questions') {
+                    const mins = String(Math.floor(this.testTimerSeconds / 60)).padStart(2, '0');
+                    const secs = String(this.testTimerSeconds % 60).padStart(2, '0');
+                    timeText = `${mins}:${secs}`;
+                } else {
+                    const taken = this.testParamValue - Math.max(0, this.testTimerSeconds);
+                    const mins = String(Math.floor(taken / 60)).padStart(2, '0');
+                    const secs = String(taken % 60).padStart(2, '0');
+                    timeText = `${mins}:${secs}`;
+                }
+                document.getElementById('res-time-taken').innerText = timeText;
+
+                // Grade circle color formatting
+                const circle = document.getElementById('res-grade-circle');
+                if (grade === 1) circle.className = "w-24 h-24 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex flex-col items-center justify-center mx-auto shadow-xl font-display";
+                else if (grade <= 3) circle.className = "w-24 h-24 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex flex-col items-center justify-center mx-auto shadow-xl font-display";
+                else circle.className = "w-24 h-24 rounded-full bg-gradient-to-tr from-rose-500 to-red-600 text-white flex flex-col items-center justify-center mx-auto shadow-xl font-display";
+
+                // Subtitle Feedback
+                const sub = document.getElementById('res-subtitle');
+                if (grade === 1) {
+                    sub.innerText = "Excelentní výsledek! Češtinu máš v malíčku! 🏆";
+                    this.unlockBadge('test_perfect');
+                    if (typeof confetti === 'function') {
+                        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+                    }
+                } else if (grade === 2) sub.innerText = "Velmi pěkný výkon! Jen tak dál! 👏";
+                else if (grade === 3) sub.innerText = "Dobrá práce, ale některé chytáky tě ještě potrápily. 👍";
+                else sub.innerText = "Nevzdávej to! Prohlédni si pravidla níže a zkus to znovu. 💪";
+
+                // Render detail error review
+                const reviewList = document.getElementById('test-review-list');
+                reviewList.innerHTML = this.testUserAnswers.map((item, idx) => {
+                    const isOk = item.isCorrect;
+                    const sentenceHtml = item.question.s.replace('_', `<strong class="${isOk ? 'text-emerald-600' : 'text-rose-600'} underline">${item.userAns}</strong>`);
+                    
+                    return `
+                        <div class="p-3.5 rounded-2xl border ${isOk ? 'bg-slate-50 border-slate-200' : 'bg-rose-50/70 border-rose-200'} space-y-1 text-xs">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex items-center gap-2 text-slate-800 font-bold">
+                                    <i class="fa-solid ${isOk ? 'fa-circle-check text-emerald-500' : 'fa-circle-xmark text-rose-500'} text-base"></i>
+                                    <span>${sentenceHtml}</span>
+                                </div>
+                                <span class="font-mono text-slate-400 font-bold">#${idx + 1}</span>
+                            </div>
+                            ${!isOk ? `
+                                <div class="pl-6 text-rose-800 font-semibold space-y-0.5">
+                                    <div>Správné řešení: <strong class="text-emerald-700">${item.question.ans}</strong></div>
+                                    <div class="text-[11px] text-slate-600">${item.question.rule}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                this.navTo('test-result');
+            }
+
+            /* ================= CARDS & DICTIONARY LOGIC ================= */
+            startCards() {
+                this.unlockBadge('explorer');
+                this.renderConsonantTabsForCards();
+                this.showCardsCategory(this.currentCardCategory);
+                this.navTo('cards');
+            }
+
+            renderConsonantTabsForCards() {
+                const container = document.getElementById('cards-consonant-tabs');
+                const list = ['B', 'L', 'M', 'P', 'S', 'V', 'Z'];
+
+                container.innerHTML = list.map(c => {
+                    const isSelected = c === this.currentCardCategory;
+                    const activeClass = isSelected
+                        ? 'bg-amber-500 text-white font-bold shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 font-semibold';
+
+                    return `
+                        <button onclick="app.showCardsCategory('${c}')" class="px-3 py-1.5 rounded-xl text-xs transition-all btn-bounce ${activeClass}">
+                            Po ${c}
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            showCardsCategory(c) {
+                this.currentCardCategory = c;
+                this.renderConsonantTabsForCards();
+                document.getElementById('cards-search-input').value = '';
+
+                const data = DATABASE[c];
+                if (!data) return;
+
+                document.getElementById('cards-title').innerHTML = `<i class="fa-solid fa-list-ol text-amber-500"></i> ${data.title}`;
+                document.getElementById('cards-count-badge').innerText = `${data.words.length} slov`;
+
+                this.renderWordsGrid(data.words);
+                this.renderHomonymsList(data.homonyms);
+            }
+
+            renderWordsGrid(words) {
+                const grid = document.getElementById('cards-words-grid');
+                if (words.length === 0) {
+                    grid.innerHTML = `<div class="col-span-2 text-center py-8 text-slate-400 font-bold text-xs">Nenalezena žádná slova.</div>`;
+                    return;
+                }
+
+                grid.innerHTML = words.map(w => `
+                    <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-1.5 hover:border-amber-300 transition-colors">
+                        <div class="flex items-baseline justify-between">
+                            <h4 class="text-lg font-bold font-display text-slate-800">${w.word}</h4>
+                            <span class="text-[10px] font-extrabold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md uppercase">vyjmenované</span>
+                        </div>
+                        <p class="text-xs text-slate-600 font-semibold"><span class="text-slate-400">Význam:</span> ${w.meaning}</p>
+                        <p class="text-xs text-slate-500 italic"><span class="text-slate-400 font-normal">Příklady:</span> ${w.examples}</p>
+                    </div>
+                `).join('');
+            }
+
+            renderHomonymsList(homonyms) {
+                const list = document.getElementById('cards-homonyms-list');
+                list.innerHTML = homonyms.map(h => `
+                    <div class="bg-white border border-amber-200/80 rounded-2xl p-3.5 space-y-2 text-xs shadow-sm">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 font-bold">
+                            <span class="text-amber-900">${h.y}</span>
+                            <span class="text-slate-300">vs</span>
+                            <span class="text-blue-900">${h.i}</span>
+                        </div>
+                        <div class="space-y-1 font-semibold">
+                            <div class="text-amber-800"><i class="fa-solid fa-check text-amber-500 mr-1"></i> ${h.y_ex}</div>
+                            <div class="text-blue-800"><i class="fa-solid fa-check text-blue-500 mr-1"></i> ${h.i_ex}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            searchCards() {
+                const query = document.getElementById('cards-search-input').value.toLowerCase().trim();
+                const data = DATABASE[this.currentCardCategory];
+                if (!data) return;
+
+                if (!query) {
+                    this.renderWordsGrid(data.words);
+                    return;
+                }
+
+                const filtered = data.words.filter(w => 
+                    w.word.toLowerCase().includes(query) || 
+                    w.meaning.toLowerCase().includes(query) || 
+                    w.examples.toLowerCase().includes(query)
+                );
+                this.renderWordsGrid(filtered);
+            }
+
+            /* ================= GAMIFICATION & BADGES ================= */
+            addXp(amount) {
+                const oldLevel = this.getCurrentLevelInfo().level;
+                this.xp += amount;
+                localStorage.setItem('vyj_xp', this.xp);
+
+                const newLevelInfo = this.getCurrentLevelInfo();
+                if (newLevelInfo.level > oldLevel) {
+                    this.sound.playBadge();
+                    if (typeof confetti === 'function') {
+                        confetti({ particleCount: 80, spread: 60, origin: { y: 0.5 } });
+                    }
+                }
+                this.checkBadges();
+                this.updateGamificationUI();
+            }
+
+            getCurrentLevelInfo() {
+                let current = LEVELS[0];
+                for (let lvl of LEVELS) {
+                    if (this.xp >= lvl.minXp) current = lvl;
+                }
+                return current;
+            }
+
+            unlockBadge(badgeId) {
+                if (!this.unlockedBadges.has(badgeId)) {
+                    this.unlockedBadges.add(badgeId);
+                    localStorage.setItem('vyj_badges', JSON.stringify([...this.unlockedBadges]));
+                    this.sound.playBadge();
+                    if (typeof confetti === 'function') {
+                        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                    }
+                    this.renderBadges();
+                }
+            }
+
+            checkBadges() {
+                if (this.streak >= 1 || this.xp > 0) this.unlockBadge('first_win');
+                if (this.streak >= 5) this.unlockBadge('streak_5');
+                if (this.streak >= 10) this.unlockBadge('streak_10');
+                if (this.homonymsCorrectCount >= 5) this.unlockBadge('homonym_hunter');
+
+                const lvl = this.getCurrentLevelInfo().level;
+                if (lvl >= 5) this.unlockBadge('level_5');
+                if (lvl >= 10) this.unlockBadge('master_all');
+            }
+
+            renderBadges() {
+                const container = document.getElementById('badges-container');
+                container.innerHTML = BADGES.map(b => {
+                    const isUnlocked = this.unlockedBadges.has(b.id);
+                    return `
+                        <div class="p-3 rounded-2xl border text-center transition-all ${isUnlocked ? 'bg-white border-amber-200 shadow-sm' : 'bg-slate-50 border-slate-200 opacity-40 grayscale'} space-y-1 relative group">
+                            <div class="w-10 h-10 rounded-xl ${b.color} flex items-center justify-center text-lg mx-auto shadow-sm">
+                                <i class="fa-solid ${b.icon}"></i>
+                            </div>
+                            <div class="font-bold text-xs text-slate-800 font-display leading-tight">${b.name}</div>
+                            <div class="text-[10px] text-slate-400 font-semibold line-clamp-2">${b.desc}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                document.getElementById('badge-progress-text').innerText = `${this.unlockedBadges.size} z ${BADGES.length} získán`;
+            }
+
+            updateGamificationUI() {
+                const levelInfo = this.getCurrentLevelInfo();
+                document.getElementById('header-level').innerText = levelInfo.level;
+                document.getElementById('header-level-title').innerText = levelInfo.title;
+                document.getElementById('header-streak').innerText = this.streak;
+                document.getElementById('header-xp').innerText = `${this.xp} XP`;
+            }
+        }
+
+        // Initialize App on load
+        let app;
+        window.onload = function() {
+            app = new App();
+        };
+    </script>
+</body>
+</html>
